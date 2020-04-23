@@ -62,7 +62,8 @@ function yt_play(connection, playingguild)
   });
 }
 
-function sfx_get(sfx_name, message, connection) {
+async function sfx_get(sfx_name, message) {
+  const connection = await message.member.voice.channel.join();
   for (var i = 0; i < sfxServerArray.length; i++)
   {
     if (sfxServerArray[i] != null) {
@@ -75,6 +76,17 @@ function sfx_get(sfx_name, message, connection) {
   sfxServerArray.push(new sfxServer(message.channel.guild.id));
   sfxServerArray[sfxServerArray.length-1].queue.push("sfx/"+sfx_name+".mp3");
   sfx_play(connection, message.channel.guild.id, 0.5);
+}
+
+async function tts_prep(tts_msg, message) {
+  const connection = await message.member.voice.channel.join();
+  googleTTS(tts_msg, "cs", 1)
+  .then(function (url) {
+    return tts_get(url, message, connection);
+  })
+  .catch(function (err) {
+    console.error(err.stack);
+  });
 }
 
 function tts_get(tts_url, message, connection) {
@@ -128,28 +140,6 @@ function sfx_play(connection, playingguild, sfvolume)
   });
 }
 
-function findGuildId(message, type)
-{
-  if (type == "yt") {
-    for (var i = 0; i < ytServerArray.length; i++)
-    {
-      if (ytServerArray[i].guildid == message.channel.guild.id) {
-        return i;
-      }
-    }
-  }
-  else if (type == "sfx")
-  {
-    for (var i = 0; i < sfxServerArray.length; i++)
-    {
-      if (sfxServerArray[i].guildid == message.channel.guild.id) {
-        return i;
-      }
-    }
-  }
-  return false;
-}
-
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
@@ -169,16 +159,11 @@ client.on('message', msg => {
 client.on('message', msg => {
   if (msg.content.startsWith("!play")) {
     if (msg.channel.name != "music-chat") {
-      msg.reply("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"); 
+      //msg.reply("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      tts_prep(msg.member.nickname + ", ještě jednou napíšeš vykřičník play mimo music čet a pošlu na tebe Sawyho.", msg);
     }
   }
 });
-
-//client.on('message', msg => {
-//  if (msg.content.startsWith("serverid")) {
-//    console.log(msg.channel.guild.id);
-//  }
-//});
 
 client.on('message', async message => {
   if (!message.guild) return;
@@ -256,17 +241,6 @@ client.on('message', async message => {
       message.reply("Nejdřív se musíš připojit do voice kanálu!");
     }
   }
-  else if (message.content == prefix+"q") {
-    if (message.member.voice.channel) {
-      const localGuild = findGuild(message, "yt");
-      if (localGuild != false) {
-        message.channel.send("Queue :notes:");
-        for (let i = 0; i < localGuild.queue.length; i++) {
-          message.channel.send((i+1) + ". song: " + localGuild.queue[i]);    
-        }
-      }
-    }
-  }
   else if (message.content.startsWith(prefix+"s ")) {
     if (message.member.voice.channel) {
       const args = message.content.split(" ");
@@ -281,8 +255,7 @@ client.on('message', async message => {
         message.channel.send(final_msg);
       }
       else {
-        const connection = await message.member.voice.channel.join();
-        sfx_get(sfx_name, message, connection);
+        sfx_get(sfx_name, message);
       } 
     }
     else {
@@ -297,14 +270,7 @@ client.on('message', async message => {
       for (let i = 1; i < args.length; i++) {
         tts_msg += args[i];
       }
-      const connection = await message.member.voice.channel.join();
-      googleTTS(tts_msg, "cs", 1)   // speed normal = 1 (default), slow = 0.24
-      .then(function (url) {
-        return tts_get(url, message, connection);;
-      })
-      .catch(function (err) {
-        console.error(err.stack);
-      });
+      tts_prep(tts_msg, message);
     }
     else {
       message.reply("Nejdřív se musíš připojit do voice kanálu!");
@@ -358,9 +324,8 @@ async function webSfx(sfxName) {
   sfxName = sfxName.substring(1);
   const splitName = sfxName.split(".");
   if (splitName[1] == "mp3" && webuserMsg != null) {
-    const connection = await webuserMsg.member.voice.channel.join();
     webuserMsg.channel.send("`[WebConsole]:`" + prefix + "s " + splitName[0]);
-    sfx_get(splitName[0], webuserMsg, connection);
+    sfx_get(splitName[0], webuserMsg);
   }
 }
 
