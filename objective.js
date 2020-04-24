@@ -16,7 +16,7 @@ class dcServer
         this.guildid = guildid;
         this.dispatcher;
         this.queue = [];
-        this.webusermsg;
+        this.webusermsg = null;
     }
     GetGuildId()
     {
@@ -127,22 +127,47 @@ client.on('message', async msg => {
             workingDCServers[currentServerIndex].webusermsg = msg;
             msg.reply("jsi sledován. Můžeš hrát z WebConsole.");
         }
+        else {
+            JoinVoiceMsg(msg);
+        }
     }
 
     else if (msg.content == prefix+"guildinfo") {
         msg.channel.send(msg.member.guild.name);
+        msg.channel.send(msg.member.guild.id);
     }
 });
 
-
+function WebSfx(urlinfo) {
+    urlinfo = urlinfo.substring(1);
+    const args = urlinfo.split(".");
+    var index;
+    for (let i = 0; i < workingDCServers.length; i++) {
+        if (workingDCServers[i].guildid == args[2]) {
+            index = i;
+        }        
+    }
+    if (args[1] == "mp3" && workingDCServers[index].webusermsg.member.voice.channelID != null) {
+        workingDCServers[index].webusermsg.channel.send("`[WebConsole]:`" + prefix + "s " + args[0]);
+        workingDCServers[index].SfxGet("sfx/"+args[0]+"."+args[1], workingDCServers[index].webusermsg);
+    }
+}
 
 // HTTP server
 http.createServer(function (req, res) {
     res.writeHead(200, {'Content-Type': 'text/html'});
-    //webSfx(req.url); //key
+    WebSfx(req.url); //key
     res.write(
-        "<script>function httpGet(theUrl){var xmlHttp = new XMLHttpRequest(); xmlHttp.open( 'GET', theUrl, false ); xmlHttp.send( null ); return xmlHttp.responseText;}</script>"
+        "<script>function httpGet(theUrl){var xmlHttp = new XMLHttpRequest(); xmlHttp.open( 'GET', theUrl + '.' + document.getElementById('servers').value, false ); xmlHttp.send( null ); return xmlHttp.responseText;}</script><select id='servers'>"
     );
+    for (let i = 0; i < workingDCServers.length; i++) {
+        if (workingDCServers[i].webusermsg != null) {
+            res.write(
+                "<option value='" + workingDCServers[i].guildid + "'>" + workingDCServers[i].webusermsg.member.guild.name + " (" + workingDCServers[i].webusermsg.member.nickname + ")</option>"
+            );
+        }
+    }
+    res.write("</select><br>");
     var buttons = "";
     fs.readdirSync("./sfx").forEach(file => {
         const split = file.split(".");
