@@ -122,6 +122,45 @@ client.on('message', async msg => {
         }
     }
 
+    if (msg.content.startsWith(prefix+"r ")) {
+        if (msg.member.voice.channel) {
+            const args = msg.content.split(" ");
+            const radioname = args[1];
+            var radiolink = null;
+            var radio = JSON.parse(fs.readFileSync("./radio.json"));
+            if (radioname == "list") {
+                var final_msg = "Tady jsou všechna rádia, která znám.\nSyntaxe je `"+ prefix + "r [radio] ([volume])`.\n";
+                for (let i = 0; i < radio.streams.length; i++) {
+                    final_msg += ":radio: `" + radio.streams[i].name + "` :flag_" + radio.streams[i].locale + ":\n";
+                }
+                msg.channel.send(final_msg);
+                msg.channel.send("Volume může být číslo (i s desetinnou tečkou) od 0 do 1+. Bez zadání tohoto parametru se rádio nastaví na defaultní hodnotu 0.2.");
+                return;
+            }
+            for (let i = 0; i < radio.streams.length; i++) {
+                if (radio.streams[i].name == radioname) {
+                    radiolink = radio.streams[i].link;
+                }
+            }
+            var radiovol = 0.2;
+            if (args[2] != undefined) {
+                radiovol = args[2];
+            }
+            if (radiolink != null) {
+                const connection = await msg.member.voice.channel.join();
+                const dispatcher = connection.play(radiolink, {
+                    volume: radiovol,
+                });
+            }
+            else {
+                msg.reply("tohle rádio neznám, starý.");
+            }
+        }
+        else {
+            JoinVoiceMsg(msg);
+        }
+    }
+
     else if (msg.content == prefix+"wconnect") {
         if (msg.member.voice.channel) {
             workingDCServers[currentServerIndex].webusermsg = msg;
@@ -132,9 +171,25 @@ client.on('message', async msg => {
         }
     }
 
+    else if (msg.content.startsWith("!play")) {
+        if (msg.member.voice.channel) {
+            if (msg.channel.name != "music-chat") {
+                workingDCServers[currentServerIndex].TtsGet(msg.member.nickname + ", ještě jednou napíšeš vykřičník play mimo music čet a pošlu na tebe Sawyho.", msg);
+            }
+        }
+        else {
+            msg.reply("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        }
+    }
+
     else if (msg.content == prefix+"guildinfo") {
         msg.channel.send(msg.member.guild.name);
         msg.channel.send(msg.member.guild.id);
+    }
+
+    else if (msg.content == prefix+"test") {
+        var radio = JSON.parse(fs.readFileSync("./radio.json"));
+        console.log(radio.streams[0].name);
     }
 });
 

@@ -1,0 +1,16 @@
+{
+    "source": "http://www.radiosure.com/stations/",
+    "streams":
+    [
+        {
+            "name": "name",
+            "locale": "cz",
+            "link": "http://stream.nameradio.cz:8000/highq.mp3"
+        },
+        {
+            "name": "name2",
+            "locale": "cz",
+            "link": "http://stream.name2radio.cz:8000/highq.mp3"
+        }
+    ]
+}
