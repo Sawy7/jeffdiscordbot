@@ -2,3 +2,4 @@ config.json
 sfx/*
 *.mp3
 radio.json
+ideas.json
