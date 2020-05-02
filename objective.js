@@ -66,9 +66,17 @@ var workingDCServers = [];
 
 function LeaveCheck()
 {
-    // to implement
+    var channels = client.voice.connections.array();
+    for (let i = 0; i < channels.length; i++) {
+        var membersNo = channels[i].channel.members.size;
+        //console.log("People in channel no." + (i+1) + ": " + membersNo);
+        if (membersNo == 1) {
+            console.log('\x1b[33m%s\x1b[0m', "Leaving inactive voice channel on " + channels[i].channel.guild.name);
+            channels[i].channel.leave();
+        }
+    }
 }
-//setInterval(LeaveCheck, 900000);
+setInterval(LeaveCheck, 900000);
 
 function JoinVoiceMsg(msg)
 {
@@ -175,12 +183,12 @@ client.on('message', async msg => {
                 radiovol = args[2];
             }
             if (radiolink != null) {
+                msg.channel.send(":satellite: Ladím :radio: `" + radioname + "` " + radioflag);
                 workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently
                 const connection = await msg.member.voice.channel.join();
                 workingDCServers[currentServerIndex].dispatcher = connection.play(radiolink, {
                     volume: radiovol,
                 });
-                msg.channel.send(":satellite: Ladím :radio: `" + radioname + "` " + radioflag);
                 workingDCServers[currentServerIndex].streamingaudio[0] = radiolink;
                 workingDCServers[currentServerIndex].streamingaudio[1] = radiovol;
                 workingDCServers[currentServerIndex].queue = [];
@@ -231,8 +239,11 @@ client.on('message', async msg => {
     }
 
     else if (msg.content == prefix+"test") {
-        const connection = await msg.member.voice.channel.join();
-        console.log(msg.member.voice.channel.members.size);
+        //LeaveCheck();
+        var channels = client.voice.connections.array();
+        for (let i = 0; i < channels.length; i++) {
+            console.log(channels[i].channel.guild.name);
+        }
     }
 });
 
