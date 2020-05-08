@@ -71,12 +71,15 @@ function LeaveCheck()
         var membersNo = channels[i].channel.members.size;
         //console.log("People in channel no." + (i+1) + ": " + membersNo);
         if (membersNo == 1) {
-            console.log('\x1b[33m%s\x1b[0m', "Leaving inactive voice channel on " + channels[i].channel.guild.name);
+            let timedateob = new Date();
+            var date = timedateob.getDate() + "/" + timedateob.getMonth() + "/" + String(timedateob.getFullYear()).substring(2);
+            var time = timedateob.getHours() + ":" + timedateob.getMinutes() + ":" + timedateob.getSeconds();
+            console.log('\x1b[33m%s\x1b[0m', "[" + date + " " + time + "] Leaving inactive voice channel on " + channels[i].channel.guild.name);
             channels[i].channel.leave();
         }
     }
 }
-setInterval(LeaveCheck, 900000);
+setInterval(LeaveCheck, 5000);
 
 function JoinVoiceMsg(msg)
 {
@@ -239,11 +242,8 @@ client.on('message', async msg => {
     }
 
     else if (msg.content == prefix+"test") {
-        //LeaveCheck();
-        var channels = client.voice.connections.array();
-        for (let i = 0; i < channels.length; i++) {
-            console.log(channels[i].channel.guild.name);
-        }
+        let timedate = new Date();
+        console.log(timedate.getHours() + ":" + timedate.getMinutes());
     }
 });
 
