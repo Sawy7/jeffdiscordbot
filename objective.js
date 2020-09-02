@@ -94,6 +94,12 @@ function JoinVoiceMsg(msg)
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    /* // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
+    client.user.setActivity("sum gud tunes", {
+        type: "WATCHING",
+        url: "https://www.twitch.tv/fuslie"
+    });
+    */
 });
 
 client.on('message', msg => {
