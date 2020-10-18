@@ -170,7 +170,7 @@ client.on('message', async msg => {
         }
     }
 
-    if (msg.content.startsWith(prefix+"r ")) {
+    else if (msg.content.startsWith(prefix+"r ")) {
         if (msg.member.voice.channel) {
             const args = msg.content.split(" ");
             const radioname = args[1];
@@ -185,6 +185,34 @@ client.on('message', async msg => {
                 }
                 msg.channel.send(final_msg);
                 msg.channel.send("Volume může být číslo (i s desetinnou tečkou) od 0 do 1+. Bez zadání tohoto parametru se rádio nastaví na defaultní hodnotu 0.2.");
+                return;
+            }
+            else if (radioname == "add")
+            {
+                var nameadd = args[2];
+                var localeadd = args[3];
+                var linkadd = args[4];
+                radio.streams.push(
+                    {
+                        name: nameadd,
+                        locale: localeadd,
+                        link: linkadd
+                    }
+                )
+                fs.writeFileSync('./radio.json', JSON.stringify(radio, null, "\t"), "utf8");
+                msg.channel.send("Rádio " + " :radio: `" + nameadd + "` " + ":flag_" + localeadd + ": s adresou streamu " + linkadd + " bylo přidáno.\n");
+                return;
+            }
+            else if (radioname == "remove")
+            {
+                var nameremove = args[2];
+                for (i = 0; i < radio.streams.length; i++) {
+                    if (nameremove == radio.streams[i].name) {
+                        msg.channel.send("Rádio " + " :radio: `" + radio.streams[i].name + "` " + ":flag_" + radio.streams[i].locale + ": s adresou streamu " + radio.streams[i].link + " bylo odstraněno.\n");
+                        radio.streams.splice(i, 1);
+                    }
+                }
+                fs.writeFileSync('./radio.json', JSON.stringify(radio, null, "\t"), "utf8");
                 return;
             }
             for (let i = 0; i < radio.streams.length; i++) {
@@ -237,6 +265,15 @@ client.on('message', async msg => {
         }
     }
 
+    else if (msg.content == prefix+"join") {
+        if (msg.member.voice.channel) {
+            msg.member.voice.channel.join();
+        }
+        else {
+            JoinVoiceMsg(msg);
+        }
+    }
+
     else if (msg.content.startsWith("!play")) {
         if (msg.member.voice.channel) {
             if (msg.channel.name != "music-chat") {
@@ -253,9 +290,34 @@ client.on('message', async msg => {
         msg.channel.send(msg.member.guild.id);
     }
 
-    else if (msg.content == prefix+"test") {
-        let timedate = new Date();
-        console.log(timedate.getHours() + ":" + timedate.getMinutes());
+    else if (msg.content == prefix+"moveall") {
+        var channels = client.voice.connections.array();
+        var formerChannel = msg.member.voice.channel;
+        var newChannel;
+        checkForNewChannel();
+
+        function checkForNewChannel() {
+            channels.forEach(ch => {
+                if (ch.channel.guild.id == msg.member.guild.id) {
+                    if (formerChannel.id == ch.channel.id) {
+                        setTimeout(checkForNewChannel, 50);
+                    }
+                    else {
+                        //console.log("new channel spotted");
+                        newChannel = ch.channel;
+                        moveToNewChannel();
+                    }
+                }            
+            });
+        }
+
+        function moveToNewChannel()
+        {
+            formerChannel.members.forEach(member => {
+                member.voice.setChannel(newChannel);
+            });
+        }
+        
     }
 });
 
