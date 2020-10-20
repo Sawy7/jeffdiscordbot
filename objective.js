@@ -94,12 +94,11 @@ function JoinVoiceMsg(msg)
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    /* // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
-    client.user.setActivity("sum gud tunes", {
+    // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
+    client.user.setActivity("tvoji mámu", {
         type: "WATCHING",
-        url: "https://www.twitch.tv/fuslie"
+        //url: "https://www.twitch.tv/drdisrespect"
     });
-    */
 });
 
 client.on('message', msg => {
@@ -291,33 +290,46 @@ client.on('message', async msg => {
     }
 
     else if (msg.content == prefix+"moveall") {
-        var channels = client.voice.connections.array();
-        var formerChannel = msg.member.voice.channel;
-        var newChannel;
-        checkForNewChannel();
+        if (msg.member.voice.channel) {
+            msg.member.voice.channel.join();
+            var channels = client.voice.connections.array();
+            var formerChannel = msg.member.voice.channel;
+            var checkCounter = 0;
+            var newChannel;
+            
+            msg.guild.member(client.user).setNickname("[Drag to new]");
+            checkForNewChannel();
 
-        function checkForNewChannel() {
-            channels.forEach(ch => {
-                if (ch.channel.guild.id == msg.member.guild.id) {
-                    if (formerChannel.id == ch.channel.id) {
-                        setTimeout(checkForNewChannel, 50);
-                    }
-                    else {
-                        //console.log("new channel spotted");
-                        newChannel = ch.channel;
-                        moveToNewChannel();
-                    }
-                }            
-            });
-        }
+            function checkForNewChannel() {
+                channels.forEach(ch => {
+                    if (ch.channel.guild.id == msg.member.guild.id) {
+                        if (formerChannel.id == ch.channel.id) {
+                            checkCounter++;
+                            if (checkCounter >= 200) {
+                                msg.guild.member(client.user).setNickname("Jeff");
+                                return;
+                            }
+                            setTimeout(checkForNewChannel, 50);
+                        }
+                        else {
+                            newChannel = ch.channel;
+                            msg.guild.member(client.user).setNickname("Jeff");
+                            moveToNewChannel();
+                        }
+                    }            
+                });
+            }
 
-        function moveToNewChannel()
-        {
-            formerChannel.members.forEach(member => {
-                member.voice.setChannel(newChannel);
-            });
+            function moveToNewChannel()
+            {
+                formerChannel.members.forEach(member => {
+                    member.voice.setChannel(newChannel);
+                });
+            }
         }
-        
+        else {
+            JoinVoiceMsg(msg);
+        }        
     }
 });
 
