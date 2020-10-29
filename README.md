@@ -26,15 +26,10 @@ When you are done with downloading (and possibly unzipping) the project, you can
 ## Dependencies
 Before you do any of this - remove 'node_modules' folder if you have one in your working directory.
 
-There are some things you will need to pull through NPM for the bot to work properly (or even start). I will leave commands that you need to run here:
+There are some things you will need to pull through NPM for the bot to work properly (or even start). You can download all dependencies using this command:
 
 ```
-sudo npm install discord.js
-sudo npm install ffmpeg-static
-sudo npm install @discordjs/opus
-(sudo npm install opusscript) <-- Use this if you cannot get @discordjs/opus to install (alternative)
-sudo npm install ytdl-core
-sudo npm install google-tts-api
+npm install
 ```
 
 ## Config file
@@ -44,12 +39,14 @@ Then you need to enter your bot's token. You need to generate one in Discord Dev
 
 [Creating a Bot Account](https://discordpy.readthedocs.io/en/latest/discord.html)
 
+Lastly you have to choose language for Google TTS. The default is "cs" (Czech). You can change to it whatever - eg. "en" (English).
+
 ## Running the thing
 Now you are basically done and don't need to do anything else. If you'd like to add some more functionality (like radio), you can read some more instructions bellow.
 
 To start your bot, you just have to run this command from the project directory:
 ```
-node objective.js
+npm start
 ```
 
 If you want your bot to run even after closing the window or ssh session, you may want to look into [screen](https://linuxize.com/post/how-to-use-linux-screen/).

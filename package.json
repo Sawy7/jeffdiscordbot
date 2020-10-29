@@ -1,0 +1,39 @@
+{
+  "name": "jeffdiscordbot",
+  "version": "1.0.0",
+  "description": "Sawy's personal meme slave.",
+  "main": "objective.js",
+  "dependencies": {
+    "discord.js": "^12.4.1",
+    "ffmpeg-static": "^4.2.7",
+    "google-tts-api": "0.0.4",
+    "opusscript": "^0.0.7",
+    "ytdl-core": "^4.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node objective.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sawy7/jeffdiscordbot.git"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "jeff",
+    "sawy",
+    "sound",
+    "effect",
+    "meme",
+    "radio",
+    "utility"
+  ],
+  "author": "Jan Němec",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sawy7/jeffdiscordbot/issues"
+  },
+  "homepage": "https://github.com/Sawy7/jeffdiscordbot#readme"
+}

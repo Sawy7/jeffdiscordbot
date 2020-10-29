@@ -1,8 +1,10 @@
 const Discord = require('discord.js');
 const {
 	prefix,
-	token
+    token,
+    language
 } = require("./config.json");
+const chatstrings = require("./chat-strings.json");
 const client = new Discord.Client();
 const fs = require("fs");
 const ytdl = require("ytdl-core");
@@ -51,7 +53,7 @@ class dcServer
     async TtsGet(ttsmsg, msg)
     {
         const connection = await msg.member.voice.channel.join();
-        var ttsurl = await googleTTS(ttsmsg, "cs", 1)
+        var ttsurl = await googleTTS(ttsmsg, language, 1)
         .then(function (url) {
             return url;    
         })
@@ -89,14 +91,14 @@ setInterval(LeaveCheck, 900000);
 
 function JoinVoiceMsg(msg)
 {
-    msg.reply("Nejdřív se musíš připojit do voice kanálu!");
+    msg.reply(chatstrings[language].joinvoicefirst);
 }
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
     client.user.setActivity("tvoji mámu", {
-        type: "WATCHING",
+        type: "WATCHING"
         //url: "https://www.twitch.tv/drdisrespect"
     });
 });
@@ -117,7 +119,7 @@ client.on('message', msg => {
             }
         )
         fs.writeFileSync('./ideas.json', JSON.stringify(ideasfile, null, "\t"), "utf8");
-        msg.reply("díky za připomínku. Uvidíme, co se s tím dá dělat.");
+        msg.reply(chatstrings[language].suggestion);
     }
 });
 
@@ -139,7 +141,7 @@ client.on('message', async msg => {
             const args = msg.content.split(" ");
             const sfxname = args[1];
             if (sfxname == "list") {
-                var final_msg = "Tady jsou zvukové efekty, které můžeš spamovat do chatu.\nSyntaxe je `"+ prefix + "s [efekt]`.\n";
+                var final_msg = chatstrings[language].sfxlist + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
                 fs.readdirSync("./sfx").forEach(file => {
                     const split = file.split(".");
                     final_msg += "`" +split[0]+"` ";
@@ -177,13 +179,13 @@ client.on('message', async msg => {
             var radio = JSON.parse(fs.readFileSync("./radio.json"));
             var radioflag;
             if (radioname == "list") {
-                var final_msg = "Tady jsou všechna rádia, která znám.\nSyntaxe je `"+ prefix + "r [radio] ([volume])`.\n";
+                var final_msg = chatstrings[language].radiolist + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].radiocmd + "\n\n";
                 for (let i = 0; i < radio.streams.length; i++) {
                     radioflag = ":flag_" + radio.streams[i].locale + ":";
                     final_msg += ":radio: `" + radio.streams[i].name + "` " + radioflag + "\n";
                 }
                 msg.channel.send(final_msg);
-                msg.channel.send("Volume může být číslo (i s desetinnou tečkou) od 0 do 1+. Bez zadání tohoto parametru se rádio nastaví na defaultní hodnotu 0.2.");
+                msg.channel.send(chatstrings[language].radiovol);
                 return;
             }
             else if (radioname == "add")
@@ -199,7 +201,7 @@ client.on('message', async msg => {
                     }
                 )
                 fs.writeFileSync('./radio.json', JSON.stringify(radio, null, "\t"), "utf8");
-                msg.channel.send("Rádio " + " :radio: `" + nameadd + "` " + ":flag_" + localeadd + ": s adresou streamu " + linkadd + " bylo přidáno.\n");
+                msg.channel.send(":radio: `" + nameadd + "` " + ":flag_" + localeadd + ": " + chatstrings[language].radiostream + " " + linkadd + " " + chatstrings[language].radioadd + "\n");
                 return;
             }
             else if (radioname == "remove")
@@ -207,7 +209,7 @@ client.on('message', async msg => {
                 var nameremove = args[2];
                 for (i = 0; i < radio.streams.length; i++) {
                     if (nameremove == radio.streams[i].name) {
-                        msg.channel.send("Rádio " + " :radio: `" + radio.streams[i].name + "` " + ":flag_" + radio.streams[i].locale + ": s adresou streamu " + radio.streams[i].link + " bylo odstraněno.\n");
+                        msg.channel.send(":radio: `" + radio.streams[i].name + "` " + ":flag_" + radio.streams[i].locale + ": " + chatstrings[language].radiostream + " " + radio.streams[i].link + " " + chatstrings[language].radioremove + "\n");
                         radio.streams.splice(i, 1);
                     }
                 }
@@ -225,8 +227,8 @@ client.on('message', async msg => {
                 radiovol = args[2];
             }
             if (radiolink != null) {
-                msg.channel.send(":satellite: Ladím :radio: `" + radioname + "` " + radioflag);
-                workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently
+                msg.channel.send(":satellite: " + chatstrings[language].radiotuning + " :radio: `" + radioname + "` " + radioflag);
+                //workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently (bug maybe?)
                 const connection = await msg.member.voice.channel.join();
                 workingDCServers[currentServerIndex].dispatcher = connection.play(radiolink, {
                     volume: radiovol,
@@ -257,7 +259,7 @@ client.on('message', async msg => {
     else if (msg.content == prefix+"wconnect") {
         if (msg.member.voice.channel) {
             workingDCServers[currentServerIndex].webusermsg = msg;
-            msg.reply("jsi sledován. Můžeš hrát z WebConsole.");
+            msg.reply(chatstrings[language].wconsole);
         }
         else {
             JoinVoiceMsg(msg);
@@ -273,6 +275,8 @@ client.on('message', async msg => {
         }
     }
 
+    // This is pretty server specific - let's not use it for now
+    /*
     else if (msg.content.startsWith("!play")) {
         if (msg.member.voice.channel) {
             if (msg.channel.name != "music-chat") {
@@ -283,6 +287,7 @@ client.on('message', async msg => {
             msg.reply("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         }
     }
+    */
 
     else if (msg.content == prefix+"guildinfo") {
         msg.channel.send(msg.member.guild.name);
@@ -297,7 +302,7 @@ client.on('message', async msg => {
             var checkCounter = 0;
             var newChannel;
             
-            msg.guild.member(client.user).setNickname("[Drag to new]");
+            msg.guild.member(client.user).setNickname("[" + chatstrings[language].moveall + "]");
             checkForNewChannel();
 
             function checkForNewChannel() {
@@ -306,14 +311,14 @@ client.on('message', async msg => {
                         if (formerChannel.id == ch.channel.id) {
                             checkCounter++;
                             if (checkCounter >= 200) {
-                                msg.guild.member(client.user).setNickname("Jeff");
+                                msg.guild.member(client.user).setNickname("");
                                 return;
                             }
                             setTimeout(checkForNewChannel, 50);
                         }
                         else {
                             newChannel = ch.channel;
-                            msg.guild.member(client.user).setNickname("Jeff");
+                            msg.guild.member(client.user).setNickname("");
                             moveToNewChannel();
                         }
                     }            
@@ -330,6 +335,10 @@ client.on('message', async msg => {
         else {
             JoinVoiceMsg(msg);
         }        
+    }
+
+    else if (msg.content == prefix+"test") {
+        msg.channel.send("!play something");       
     }
 });
 

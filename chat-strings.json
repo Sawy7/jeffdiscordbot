@@ -1,0 +1,34 @@
+{
+    "cs": {
+        "joinvoicefirst": "Nejdřív se musíš připojit do voice kanálu!",
+        "suggestion": "díky za připomínku. Uvidíme, co se s tím dá dělat.",
+        "sfxlist": "Tady jsou zvukové efekty, které můžeš spamovat do chatu.",
+        "cmdis": "Syntaxe je `",
+        "sfxcmd": "s [efekt]`.",
+        "radiolist": "Tady jsou všechna rádia, která znám.",
+        "radiocmd": "r [radio] ([volume])`.",
+        "radiovol": "Volume může být číslo (i s desetinnou tečkou) od 0 do 1+. Bez zadání tohoto parametru se rádio nastaví na defaultní hodnotu 0.2.",
+        "radiostream": "s adresou streamu",
+        "radioadd": "bylo přidáno.",
+        "radioremove": "bylo odstraněno.",
+        "radiotuning": "Ladím",
+        "wconsole": "jsi sledován. Můžeš hrát z WebConsole.",
+        "moveall": "Přesuň do kanálu"
+    },
+    "en": {
+        "joinvoicefirst": "You have to join a voice channel first!",
+        "suggestion": "thanks for your suggestion. We'll see what we can do about it.",
+        "sfxlist": "Here are all sound effects you can spam in chat.",
+        "cmdis": "The magic incantation is `",
+        "sfxcmd": "s [effect]`.",
+        "radiolist": "Here are all the radios I know.",
+        "radiocmd": "r [radio] ([volume])`.",
+        "radiovol": "Volume can be any number from 0 to 1 (including decimals). Without this parameter volume will be 0.2.",
+        "radiostream": "with stream address",
+        "radioadd": "was added.",
+        "radioremove": "was removed.",
+        "radiotuning": "Tuning",
+        "wconsole": "I'm following you. You can now play from WebConsole.",
+        "moveall": "Drag to new"
+    }
+}
