@@ -13,7 +13,9 @@
         "radioremove": "bylo odstraněno.",
         "radiotuning": "Ladím",
         "wconsole": "jsi sledován. Můžeš hrát z WebConsole.",
-        "moveall": "Přesuň do kanálu"
+        "moveall": "Přesuň do kanálu",
+        "helpheader": "Obrázková dokumentace",
+        "helpdesc": "Neboj, je to stručné..."
     },
     "en": {
         "joinvoicefirst": "You have to join a voice channel first!",
@@ -29,6 +31,8 @@
         "radioremove": "was removed.",
         "radiotuning": "Tuning",
         "wconsole": "I'm following you. You can now play from WebConsole.",
-        "moveall": "Drag to new"
+        "moveall": "Drag to new",
+        "helpheader": "Picture documentation",
+        "helpdesc": "Don't worry, it won't take you long..."
     }
 }

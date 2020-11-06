@@ -337,8 +337,17 @@ client.on('message', async msg => {
         }        
     }
 
-    else if (msg.content == prefix+"test") {
-        msg.channel.send("!play something");       
+    else if (msg.content == prefix+"help") {
+        var timeNow = new Date();
+        const exampleEmbed = new Discord.MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle(chatstrings[language].helpheader)
+            .setURL('https://github.com/Sawy7/jeffdiscordbot/blob/master/usage-gifs.md')
+            .setDescription(chatstrings[language].helpdesc)
+            .setThumbnail('https://cdn.discordapp.com/avatars/336569159188086784/e1af040e8a840e266ea35e8be1053bc1.png')
+            .setTimestamp()
+            .setFooter('© Jan Němec ' + timeNow.getFullYear(), 'https://cdn.discordapp.com/avatars/336569159188086784/e1af040e8a840e266ea35e8be1053bc1.png');
+        msg.channel.send(exampleEmbed)
     }
 });
 
