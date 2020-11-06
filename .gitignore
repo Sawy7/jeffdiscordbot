@@ -3,5 +3,5 @@ sfx/*
 *.mp3
 radio.json
 ideas.json
-node-modules
+node_modules
 leaving.log
