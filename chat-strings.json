@@ -12,10 +12,12 @@
         "radioadd": "bylo přidáno.",
         "radioremove": "bylo odstraněno.",
         "radiotuning": "Ladím",
+        "unknownradio": "tohle rádio neznám, starý.",
         "wconsole": "jsi sledován. Můžeš hrát z WebConsole.",
         "moveall": "Přesuň do kanálu",
         "helpheader": "Obrázková dokumentace",
-        "helpdesc": "Neboj, je to stručné..."
+        "helpdesc": "Neboj, je to stručné...",
+        "nothingtostop": "Co mám zastavit? Vždyť nic nehraje!"
     },
     "en": {
         "joinvoicefirst": "You have to join a voice channel first!",
@@ -30,9 +32,11 @@
         "radioadd": "was added.",
         "radioremove": "was removed.",
         "radiotuning": "Tuning",
+        "unknownradio": "I don't know this one.",
         "wconsole": "I'm following you. You can now play from WebConsole.",
         "moveall": "Drag to new",
         "helpheader": "Picture documentation",
-        "helpdesc": "Don't worry, it won't take you long..."
+        "helpdesc": "Don't worry, it won't take you long...",
+        "nothingtostop": "Nothing to stop here!"
     }
 }

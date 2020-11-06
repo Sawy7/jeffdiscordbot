@@ -18,6 +18,7 @@ class dcServer
         this.guildid = msg.guild.id;
         this.dispatcher;
         this.queue = [];
+        this.msgQueue = [];
         this.webusermsg = null;
         this.streamingaudio = [];
     }
@@ -29,6 +30,8 @@ class dcServer
     {
         const connection = await msg.member.voice.channel.join();
         this.queue.push(sfxname);
+        this.msgQueue.push(msg);
+        msg.react("⏩");
         if (this.queue.length == 1) {
             this.SfxPlay(connection, 0.5);
         }
@@ -38,8 +41,11 @@ class dcServer
         this.dispatcher = connection.play(this.queue[0], {
             volume: sfvolume,
         });
-        this.dispatcher.on('finish', () => {
+        this.dispatcher.once('finish', () => {
             this.queue.shift();
+            this.msgQueue[0].react("✅");
+            this.msgQueue[0].reactions.cache.get("⏩").remove().catch(error => console.error('Failed to remove reactions: ', error));
+            this.msgQueue.shift();
             if (this.queue.length > 0) {
                 this.SfxPlay(connection, sfvolume);
             }
@@ -58,6 +64,8 @@ class dcServer
             return url;    
         })
         this.queue.push(ttsurl);
+        this.msgQueue.push(msg);
+        msg.react("⏩");
         if (this.queue.length == 1) {
             this.SfxPlay(connection, 1);
         } 
@@ -94,7 +102,7 @@ function JoinVoiceMsg(msg)
     msg.reply(chatstrings[language].joinvoicefirst);
 }
 
-client.on('ready', () => {
+client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
     client.user.setActivity("tvoji mámu", {
@@ -238,7 +246,7 @@ client.on('message', async msg => {
                 workingDCServers[currentServerIndex].queue = [];
             }
             else {
-                msg.reply("tohle rádio neznám, starý.");
+                msg.reply(chatstrings[language].unknownradio);
             }
         }
         else {
@@ -248,8 +256,15 @@ client.on('message', async msg => {
 
     else if (msg.content == prefix+"stop") {
         if (msg.member.voice.channel) {
-            workingDCServers[currentServerIndex].dispatcher.destroy();
-            workingDCServers[currentServerIndex].streamingaudio = [];
+            if (workingDCServers[currentServerIndex].dispatcher != undefined) {
+                msg.react("✅");
+                workingDCServers[currentServerIndex].dispatcher.destroy();
+                workingDCServers[currentServerIndex].streamingaudio = [];
+            }
+            else
+            {
+                msg.reply(chatstrings[language].nothingtostop);
+            }
         }
         else {
             JoinVoiceMsg(msg);
