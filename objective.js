@@ -29,11 +29,17 @@ class dcServer
     async SfxGet(sfxname, msg)
     {
         const connection = await msg.member.voice.channel.join();
-        this.queue.push(sfxname);
-        this.msgQueue.push(msg);
-        msg.react("⏩");
-        if (this.queue.length == 1) {
-            this.SfxPlay(connection, 0.5);
+        var sfxDirectory = fs.readdirSync("./sfx/");
+        if (sfxDirectory.includes(sfxname.split("/")[1])) {
+            this.queue.push(sfxname);
+            this.msgQueue.push(msg);
+            msg.react("⏩");
+            if (this.queue.length == 1) {
+                this.SfxPlay(connection, 0.5);
+            }
+        }
+        else {
+            msg.react("❓");
         }
     }
     SfxPlay(connection, sfvolume)
@@ -150,11 +156,33 @@ client.on('message', async msg => {
             const sfxname = args[1];
             if (sfxname == "list") {
                 var final_msg = chatstrings[language].sfxlist + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
-                fs.readdirSync("./sfx").forEach(file => {
-                    const split = file.split(".");
-                    final_msg += "`" +split[0]+"` ";
-                });
-                msg.channel.send(final_msg);
+                try {
+                    var dir = "./sfx/";
+                    var sfxDirectory = fs.readdirSync(dir);
+                    sfxDirectory.sort(
+                        function(a, b) {
+                            return fs.statSync(dir + b).mtime.getTime() - fs.statSync(dir + a).mtime.getTime();
+                        }
+                    );
+                    
+                    final_msg += "**Deset nejnovějších efektů:**\n"
+
+                    for (let i = 0; i < 10; i++) {
+                        const split = sfxDirectory[0].split(".");
+                        final_msg += "`" +split[0]+"` ";
+                        sfxDirectory.shift();
+                    }
+
+                    sfxDirectory.sort();
+                    final_msg += "\n**Všechny ostatní efekty:**\n"
+                    sfxDirectory.forEach(file => {
+                        const split = file.split(".");
+                        final_msg += "`" +split[0]+"` ";
+                    });
+                    msg.channel.send(final_msg);
+                } catch (error) {
+                    console.log("Error: You have to create the directory 'sfx' and fill it with .mp3 files first.");
+                }
             }
             else {
                 workingDCServers[currentServerIndex].SfxGet("sfx/"+sfxname+".mp3", msg);
