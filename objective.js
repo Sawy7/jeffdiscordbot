@@ -65,10 +65,9 @@ class dcServer
     async TtsGet(ttsmsg, msg)
     {
         const connection = await msg.member.voice.channel.join();
-        var ttsurl = await googleTTS(ttsmsg, language, 1)
-        .then(function (url) {
-            return url;    
-        })
+        var ttsurl = googleTTS.getAudioUrl(ttsmsg, {
+            lang: language,
+        });
         this.queue.push(ttsurl);
         this.msgQueue.push(msg);
         msg.react("⏩");
@@ -193,21 +192,19 @@ client.on('message', async msg => {
         }
     }
 
-    // tis broken
-
-    // else if (msg.content.startsWith(prefix+"t ")) {
-    //     if (msg.member.voice.channel) {
-    //         const args = msg.content.split(" ");
-    //         var ttsmsg = "";
-    //         for (let i = 1; i < args.length; i++) {
-    //             ttsmsg += args[i];
-    //         }
-    //         workingDCServers[currentServerIndex].TtsGet(ttsmsg, msg);
-    //     }
-    //     else {
-    //         JoinVoiceMsg(msg);
-    //     }
-    // }
+    else if (msg.content.startsWith(prefix+"t ")) {
+        if (msg.member.voice.channel) {
+            const args = msg.content.split(" ");
+            var ttsmsg = "";
+            for (let i = 1; i < args.length; i++) {
+                ttsmsg += args[i];
+            }
+            workingDCServers[currentServerIndex].TtsGet(ttsmsg, msg);
+        }
+        else {
+            JoinVoiceMsg(msg);
+        }
+    }
 
     else if (msg.content.startsWith(prefix+"r ")) {
         if (msg.member.voice.channel) {
