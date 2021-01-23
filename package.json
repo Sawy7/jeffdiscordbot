@@ -4,11 +4,11 @@
   "description": "Sawy's personal meme slave.",
   "main": "objective.js",
   "dependencies": {
-    "discord.js": "^12.4.1",
+    "discord.js": "^12.5.1",
     "ffmpeg-static": "^4.2.7",
-    "google-tts-api": "0.0.4",
+    "google-tts-api": "^2.0.1",
     "opusscript": "^0.0.7",
-    "ytdl-core": "^4.0.0"
+    "ytdl-core": "^4.4.4"
   },
   "devDependencies": {},
   "scripts": {

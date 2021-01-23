@@ -165,7 +165,7 @@ client.on('message', async msg => {
                         }
                     );
                     
-                    final_msg += "**Deset nejnovějších efektů:**\n"
+                    final_msg += "**" + chatstrings[language].sfxtopten + "**\n"
 
                     for (let i = 0; i < 10; i++) {
                         const split = sfxDirectory[0].split(".");
@@ -174,7 +174,7 @@ client.on('message', async msg => {
                     }
 
                     sfxDirectory.sort();
-                    final_msg += "\n**Všechny ostatní efekty:**\n"
+                    final_msg += "\n**" + chatstrings[language].sfxeverythingelse + "**\n"
                     sfxDirectory.forEach(file => {
                         const split = file.split(".");
                         final_msg += "`" +split[0]+"` ";
@@ -193,26 +193,34 @@ client.on('message', async msg => {
         }
     }
 
-    else if (msg.content.startsWith(prefix+"t ")) {
-        if (msg.member.voice.channel) {
-            const args = msg.content.split(" ");
-            var ttsmsg = "";
-            for (let i = 1; i < args.length; i++) {
-                ttsmsg += args[i];
-            }
-            workingDCServers[currentServerIndex].TtsGet(ttsmsg, msg);
-        }
-        else {
-            JoinVoiceMsg(msg);
-        }
-    }
+    // tis broken
+
+    // else if (msg.content.startsWith(prefix+"t ")) {
+    //     if (msg.member.voice.channel) {
+    //         const args = msg.content.split(" ");
+    //         var ttsmsg = "";
+    //         for (let i = 1; i < args.length; i++) {
+    //             ttsmsg += args[i];
+    //         }
+    //         workingDCServers[currentServerIndex].TtsGet(ttsmsg, msg);
+    //     }
+    //     else {
+    //         JoinVoiceMsg(msg);
+    //     }
+    // }
 
     else if (msg.content.startsWith(prefix+"r ")) {
         if (msg.member.voice.channel) {
             const args = msg.content.split(" ");
             const radioname = args[1];
             var radiolink = null;
-            var radio = JSON.parse(fs.readFileSync("./radio.json"));
+            var radio;
+            try {
+                radio = JSON.parse(fs.readFileSync("./radio.json"));
+            } catch (error) {
+                console.log("Error: You have to create the file 'radio.json' first. Template is available in the bot's directory.");
+                return;
+            }
             var radioflag;
             if (radioname == "list") {
                 var final_msg = chatstrings[language].radiolist + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].radiocmd + "\n\n";
@@ -266,6 +274,7 @@ client.on('message', async msg => {
                 msg.channel.send(":satellite: " + chatstrings[language].radiotuning + " :radio: `" + radioname + "` " + radioflag);
                 //workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently (bug maybe?)
                 const connection = await msg.member.voice.channel.join();
+                console.log(radiolink + "; volume: " + radiovol);
                 workingDCServers[currentServerIndex].dispatcher = connection.play(radiolink, {
                     volume: radiovol,
                 });
