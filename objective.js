@@ -10,6 +10,7 @@ const fs = require("fs");
 const ytdl = require("ytdl-core");
 const googleTTS = require("google-tts-api");
 const http = require("http");
+const https = require("https");
 
 class dcServer
 {
@@ -50,7 +51,11 @@ class dcServer
         this.dispatcher.once('finish', () => {
             this.queue.shift();
             this.msgQueue[0].react("✅");
-            this.msgQueue[0].reactions.cache.get("⏩").remove().catch(error => console.error('Failed to remove reactions: ', error));
+            try {
+                this.msgQueue[0].reactions.cache.get("⏩").remove();
+            } catch (error) {
+                console.error("Error: Failed to remove reactions.")
+            }
             this.msgQueue.shift();
             if (this.queue.length > 0) {
                 this.SfxPlay(connection, sfvolume);
@@ -107,6 +112,13 @@ function JoinVoiceMsg(msg)
     msg.reply(chatstrings[language].joinvoicefirst);
 }
 
+function downloadFileSecure(url, name, path){
+    const file = fs.createWriteStream(path + name);
+    const request = https.get(url, function(response) {
+        response.pipe(file);
+    });
+}
+
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     // https://discord.js.org/#/docs/main/stable/typedef/ActivityType
@@ -154,7 +166,7 @@ client.on('message', async msg => {
             const args = msg.content.split(" ");
             const sfxname = args[1];
             if (sfxname == "list") {
-                var final_msg = chatstrings[language].sfxlist + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
+                var final_msg = chatstrings[language].sfxlist + " " + chatstrings[language].sfxsubmit + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
                 try {
                     var dir = "./sfx/";
                     var sfxDirectory = fs.readdirSync(dir);
@@ -180,7 +192,7 @@ client.on('message', async msg => {
                     });
                     msg.channel.send(final_msg);
                 } catch (error) {
-                    console.log("Error: You have to create the directory 'sfx' and fill it with .mp3 files first.");
+                    console.error("Error: You have to create the directory 'sfx' and fill it with .mp3 files first.");
                 }
             }
             else {
@@ -189,6 +201,54 @@ client.on('message', async msg => {
         }
         else {
             JoinVoiceMsg(msg);
+        }
+    }
+
+    if (msg.channel.name == "effect-ideas" & msg.author.bot == false)
+    {
+        var mp3File = msg.attachments.first();
+        if(mp3File) {
+            if (mp3File.name.endsWith(".mp3")) {
+                var submitPath = "./sfxSubmit/";
+                if (!fs.existsSync(submitPath)) {
+                    fs.mkdirSync(submitPath);
+                }
+                downloadFileSecure(mp3File.url, mp3File.name, submitPath);
+                msg.reply("díky za příspěvek. Admin to musí schválit.")
+                .then( adminReply => {
+                    adminReply.react("✅");
+                    adminReply.react("❌");
+                    // owner id could use some improvement - maybe any admin?
+                    adminReply.awaitReactions((reaction, user) => msg.guild.ownerID == user.id && (reaction.emoji.name == "✅" || reaction.emoji.name == "❌"),
+                    { max: 1, time: 43200000 }).then(reactions => { // time = 12 hours
+                        if (reactions.first().emoji.name == "✅") {
+                            // admin approves
+                            console.log("positive");
+                            fs.rename(submitPath + mp3File.name, "./sfx/" + mp3File.name, err => {
+                                if (err) console.log("Could not move approved effect.");
+                            })
+                        }
+                        else if (reactions.first().emoji.name == "❌")
+                        {
+                            // admin disapproves
+                            console.log("negative");
+                            fs.rm(submitPath + mp3File.name, err => {
+                                if (err) console.log("Could not remove disapproved effect.");
+                            })
+                        }    
+                    }).catch(() => {
+                        console.log("timeout");
+                    });
+                }).catch(() => {
+                    console.error("Error: Could not create admin reaction message.");
+                });                        
+            }
+            else {
+                msg.react("❓");
+            }
+        }
+        else {
+            msg.react("❌");
         }
     }
 
@@ -215,7 +275,7 @@ client.on('message', async msg => {
             try {
                 radio = JSON.parse(fs.readFileSync("./radio.json"));
             } catch (error) {
-                console.log("Error: You have to create the file 'radio.json' first. Template is available in the bot's directory.");
+                console.error("Error: You have to create the file 'radio.json' first. Template is available in the bot's directory.");
                 return;
             }
             var radioflag;
@@ -271,7 +331,6 @@ client.on('message', async msg => {
                 msg.channel.send(":satellite: " + chatstrings[language].radiotuning + " :radio: `" + radioname + "` " + radioflag);
                 //workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently (bug maybe?)
                 const connection = await msg.member.voice.channel.join();
-                console.log(radiolink + "; volume: " + radiovol);
                 workingDCServers[currentServerIndex].dispatcher = connection.play(radiolink, {
                     volume: radiovol,
                 });
@@ -397,6 +456,20 @@ client.on('message', async msg => {
             .setTimestamp()
             .setFooter('© Jan Němec ' + timeNow.getFullYear(), 'https://cdn.discordapp.com/avatars/336569159188086784/e1af040e8a840e266ea35e8be1053bc1.png');
         msg.channel.send(exampleEmbed)
+    }
+
+    else if (msg.content == prefix+"staryahoj") {
+        msg.author.send("stary ahoj!");
+    }
+});
+
+client.on('messageReactionAdd', (reaction, user) => {
+    
+    if (reaction == "✅") {
+        
+    }
+    else if (reaction == "❌") {
+        
     }
 });
 
