@@ -54,7 +54,7 @@ class dcServer
             try {
                 this.msgQueue[0].reactions.cache.get("⏩").remove();
             } catch (error) {
-                console.error("Error: Failed to remove reactions.")
+                console.error("Error: Failed to remove reactions. Details:\n" + error);
             }
             this.msgQueue.shift();
             if (this.queue.length > 0) {
@@ -89,7 +89,6 @@ function LeaveCheck()
     var channels = client.voice.connections.array();
     for (let i = 0; i < channels.length; i++) {
         var membersNo = channels[i].channel.members.size;
-        //console.log("People in channel no." + (i+1) + ": " + membersNo);
         if (membersNo == 1) {
             let timedateob = new Date();
             var date = timedateob.getDate() + "/" + (timedateob.getMonth()+1) + "/" + String(timedateob.getFullYear()).substring(2);
@@ -166,7 +165,9 @@ client.on('message', async msg => {
             const args = msg.content.split(" ");
             const sfxname = args[1];
             if (sfxname == "list") {
-                var final_msg = chatstrings[language].sfxlist + " " + chatstrings[language].sfxsubmit + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
+                var msgToSend = chatstrings[language].sfxlist + " " + chatstrings[language].sfxsubmit + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
+                msg.channel.send(msgToSend);
+                
                 try {
                     var dir = "./sfx/";
                     var sfxDirectory = fs.readdirSync(dir);
@@ -176,27 +177,42 @@ client.on('message', async msg => {
                         }
                     );
                     
-                    final_msg += "**" + chatstrings[language].sfxtopten + "**\n"
-
+                    msgToSend = "**" + chatstrings[language].sfxtopten + "**\n"
                     for (let i = 0; i < 10; i++) {
                         const split = sfxDirectory[0].split(".");
-                        final_msg += "`" +split[0]+"` ";
+                        msgToSend += "`" +split[0]+"` ";
                         sfxDirectory.shift();
                     }
+                    msg.channel.send(msgToSend);
 
                     sfxDirectory.sort();
-                    final_msg += "\n**" + chatstrings[language].sfxeverythingelse + "**\n"
+                    msgToSend = "\n**" + chatstrings[language].sfxeverythingelse + "**\n"
                     sfxDirectory.forEach(file => {
                         const split = file.split(".");
-                        final_msg += "`" +split[0]+"` ";
+                        var effectString = "`" +split[0]+"` ";
+                        if (msgToSend.length + effectString.length > 2000) {
+                            msg.channel.send(msgToSend);
+                            msgToSend = effectString;
+                        }
+                        else
+                        {
+                            msgToSend += effectString;
+                        }
                     });
-                    msg.channel.send(final_msg);
+                    msg.channel.send(msgToSend);
+
                 } catch (error) {
                     console.error("Error: You have to create the directory 'sfx' and fill it with .mp3 files first.");
                 }
             }
             else {
                 workingDCServers[currentServerIndex].SfxGet("sfx/"+sfxname+".mp3", msg);
+                // song console report
+                let timedateob = new Date();
+                var date = timedateob.getDate() + "/" + (timedateob.getMonth()+1) + "/" + String(timedateob.getFullYear()).substring(2);
+                var time = timedateob.getHours() + ":" + timedateob.getMinutes() + ":" + timedateob.getSeconds();
+                var consoleReport = "[" + date + " " + time + "] " + msg.member.nickname + " played '.s " + sfxname + "' on " + msg.member.guild.name;
+                console.log("\x1b[32m%s\x1b[0m", consoleReport); 
             } 
         }
         else {
@@ -228,7 +244,7 @@ client.on('message', async msg => {
                                 if (err) console.log("Could not move approved effect.");
                             })
                         }
-                        else if (reactions.first().emoji.name == "❌")
+                        else
                         {
                             // admin disapproves
                             console.log("negative");
@@ -353,6 +369,7 @@ client.on('message', async msg => {
                 msg.react("✅");
                 workingDCServers[currentServerIndex].dispatcher.destroy();
                 workingDCServers[currentServerIndex].streamingaudio = [];
+                workingDCServers[currentServerIndex].queue = [];
             }
             else
             {
@@ -460,16 +477,6 @@ client.on('message', async msg => {
 
     else if (msg.content == prefix+"staryahoj") {
         msg.author.send("stary ahoj!");
-    }
-});
-
-client.on('messageReactionAdd', (reaction, user) => {
-    
-    if (reaction == "✅") {
-        
-    }
-    else if (reaction == "❌") {
-        
     }
 });
 
