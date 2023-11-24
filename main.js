@@ -483,6 +483,7 @@ client.on('messageCreate', async msg => {
     }
 
     else if (msg.content == prefix + "help") {
+        return; // Disabled for now
         var timeNow = new Date();
         const exampleEmbed = new Discord.MessageEmbed()
             .setColor('#0099ff')
