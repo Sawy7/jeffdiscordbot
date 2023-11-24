@@ -1,35 +1,52 @@
-const Discord = require('discord.js');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const {
-	prefix,
+    prefix,
     token,
     language
 } = require("./config.json");
 const chatstrings = require("./chat-strings.json");
-const client = new Discord.Client();
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildMessageTyping,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildMessageTyping,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.MessageContent
+    ], partials: [Partials.Message, Partials.Channel, Partials.Reaction]
+});
 const fs = require("fs");
-const ytdl = require("ytdl-core");
-const googleTTS = require("google-tts-api");
+const { Readable } = require("stream");
 const http = require("http");
 const https = require("https");
+const { getAudioBuffer } = require('simple-tts-mp3');
 
-class dcServer
-{
-    constructor(msg)
-    {
+class dcServer {
+    constructor(msg) {
         this.guildid = msg.guild.id;
         this.dispatcher;
+        this.audioPlayer;
         this.queue = [];
         this.msgQueue = [];
         this.webusermsg = null;
         this.streamingaudio = [];
     }
-    GetGuildId()
-    {
+    GetGuildId() {
         return this.guildid;
     }
-    async SfxGet(sfxname, msg)
-    {
-        const connection = await msg.member.voice.channel.join();
+    async SfxGet(sfxname, msg) {
+        const channel = msg.member.voice.channel;
+        const connection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: channel.guild.id,
+            adapterCreator: channel.guild.voiceAdapterCreator,
+        });
         var sfxDirectory = fs.readdirSync("./sfx/");
         if (sfxDirectory.includes(sfxname.split("/")[1])) {
             this.queue.push(sfxname);
@@ -43,12 +60,15 @@ class dcServer
             msg.react("❓");
         }
     }
-    SfxPlay(connection, sfvolume)
-    {
-        this.dispatcher = connection.play(this.queue[0], {
-            volume: sfvolume,
-        });
-        this.dispatcher.once('finish', () => {
+    SfxPlay(connection, sfvolume) {
+        if (this.audioPlayer === undefined)
+            this.audioPlayer = createAudioPlayer();
+        const song = createAudioResource(this.queue[0], { inlineVolume: true });
+        song.volume.setVolume(sfvolume);
+        this.audioPlayer.play(song);
+        connection.subscribe(this.audioPlayer);
+
+        this.audioPlayer.once(AudioPlayerStatus.Idle, () => {
             this.queue.shift();
             this.msgQueue[0].react("✅");
             try {
@@ -61,42 +81,49 @@ class dcServer
                 this.SfxPlay(connection, sfvolume);
             }
             else if (this.streamingaudio.length > 0) {
-                this.dispatcher = connection.play(this.streamingaudio[0], {
-                    volume: this.streamingaudio[1],
-                });
+                const stream = createAudioResource(this.streamingaudio[0], { inlineVolume: true });
+                stream.volume.setVolume(this.streamingaudio[1]);
+                this.audioPlayer.play(stream);
+            }
+            else {
+                this.audioPlayer = undefined;
             }
         });
     }
-    async TtsGet(ttsmsg, msg)
-    {
-        const connection = await msg.member.voice.channel.join();
-        var ttsurl = googleTTS.getAudioUrl(ttsmsg, {
-            lang: language,
+    async TtsGet(ttsmsg, msg) {
+        const channel = msg.member.voice.channel;
+        const connection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: channel.guild.id,
+            adapterCreator: channel.guild.voiceAdapterCreator,
         });
-        this.queue.push(ttsurl);
-        this.msgQueue.push(msg);
-        msg.react("⏩");
-        if (this.queue.length == 1) {
-            this.SfxPlay(connection, 1);
-        } 
+        getAudioBuffer(ttsmsg, language)
+            .then(buffer => {
+                const readableBuffer = Readable.from(buffer);
+                this.queue.push(readableBuffer);
+                this.msgQueue.push(msg);
+                msg.react("⏩");
+                if (this.queue.length == 1) {
+                    this.SfxPlay(connection, 1);
+                }
+            });
     }
 }
 
 var workingDCServers = [];
 
-function LeaveCheck()
-{
+function LeaveCheck() {
     var channels = client.voice.connections.array();
     for (let i = 0; i < channels.length; i++) {
         var membersNo = channels[i].channel.members.size;
         if (membersNo == 1) {
             let timedateob = new Date();
-            var date = timedateob.getDate() + "/" + (timedateob.getMonth()+1) + "/" + String(timedateob.getFullYear()).substring(2);
+            var date = timedateob.getDate() + "/" + (timedateob.getMonth() + 1) + "/" + String(timedateob.getFullYear()).substring(2);
             var time = timedateob.getHours() + ":" + timedateob.getMinutes() + ":" + timedateob.getSeconds();
             var inactivemsg = "[" + date + " " + time + "] Leaving inactive voice channel on " + channels[i].channel.guild.name;
             console.log("\x1b[33m%s\x1b[0m", inactivemsg);
-            fs.appendFile("./leaving.log", inactivemsg + "\n", function(err) {
-                if(err) {
+            fs.appendFile("./leaving.log", inactivemsg + "\n", function (err) {
+                if (err) {
                     return console.log(err);
                 }
             });
@@ -106,14 +133,13 @@ function LeaveCheck()
 }
 setInterval(LeaveCheck, 900000);
 
-function JoinVoiceMsg(msg)
-{
+function JoinVoiceMsg(msg) {
     msg.reply(chatstrings[language].joinvoicefirst);
 }
 
-function downloadFileSecure(url, name, path){
-    const file = fs.createWriteStream(path + name);
-    const request = https.get(url, function(response) {
+function downloadFileSecure(url, name, path) {
+    const file = createWriteStream(path + name);
+    const request = https.get(url, function (response) {
         response.pipe(file);
     });
 }
@@ -127,13 +153,13 @@ client.once('ready', () => {
     });
 });
 
-client.on('message', msg => {
+client.on('messageCreate', msg => {
     if (msg.content === 'ping') {
         msg.reply('pong');
     }
 });
 
-client.on('message', msg => {
+client.on('messageCreate', msg => {
     if (msg.channel.name == "bot-ideas" & msg.author.bot == false) {
         var ideasfile = JSON.parse(fs.readFileSync("./ideas.json"));
         ideasfile.ideas.push(
@@ -147,40 +173,40 @@ client.on('message', msg => {
     }
 });
 
-client.on('message', async msg => {
+client.on('messageCreate', async msg => {
     if (!msg.guild) return;
     var currentServerIndex = -1;
     for (let i = 0; i < workingDCServers.length; i++) {
         if (workingDCServers[i].GetGuildId() == msg.guild.id) {
-            currentServerIndex = i;            
-        }        
+            currentServerIndex = i;
+        }
     }
     if (currentServerIndex == -1) {
         workingDCServers.push(new dcServer(msg));
         currentServerIndex = workingDCServers.length - 1;
     }
 
-    if (msg.content.startsWith(prefix+"s ")) {
+    if (msg.content.startsWith(prefix + "s ")) {
         if (msg.member.voice.channel) {
             const args = msg.content.split(" ");
             const sfxname = args[1];
             if (sfxname == "list") {
                 var msgToSend = chatstrings[language].sfxlist + " " + chatstrings[language].sfxsubmit + "\n" + chatstrings[language].cmdis + prefix + chatstrings[language].sfxcmd + "\n\n";
                 msg.channel.send(msgToSend);
-                
+
                 try {
                     var dir = "./sfx/";
                     var sfxDirectory = fs.readdirSync(dir);
                     sfxDirectory.sort(
-                        function(a, b) {
+                        function (a, b) {
                             return fs.statSync(dir + b).mtime.getTime() - fs.statSync(dir + a).mtime.getTime();
                         }
                     );
-                    
+
                     msgToSend = "**" + chatstrings[language].sfxtopten + "**\n"
                     for (let i = 0; i < 10; i++) {
                         const split = sfxDirectory[0].split(".");
-                        msgToSend += "`" +split[0]+"` ";
+                        msgToSend += "`" + split[0] + "` ";
                         sfxDirectory.shift();
                     }
                     msg.channel.send(msgToSend);
@@ -189,13 +215,12 @@ client.on('message', async msg => {
                     msgToSend = "\n**" + chatstrings[language].sfxeverythingelse + "**\n"
                     sfxDirectory.forEach(file => {
                         const split = file.split(".");
-                        var effectString = "`" +split[0]+"` ";
+                        var effectString = "`" + split[0] + "` ";
                         if (msgToSend.length + effectString.length > 2000) {
                             msg.channel.send(msgToSend);
                             msgToSend = effectString;
                         }
-                        else
-                        {
+                        else {
                             msgToSend += effectString;
                         }
                     });
@@ -206,24 +231,23 @@ client.on('message', async msg => {
                 }
             }
             else {
-                workingDCServers[currentServerIndex].SfxGet("sfx/"+sfxname+".mp3", msg);
+                workingDCServers[currentServerIndex].SfxGet("sfx/" + sfxname + ".mp3", msg);
                 // song console report
                 let timedateob = new Date();
-                var date = timedateob.getDate() + "/" + (timedateob.getMonth()+1) + "/" + String(timedateob.getFullYear()).substring(2);
+                var date = timedateob.getDate() + "/" + (timedateob.getMonth() + 1) + "/" + String(timedateob.getFullYear()).substring(2);
                 var time = timedateob.getHours() + ":" + timedateob.getMinutes() + ":" + timedateob.getSeconds();
                 var consoleReport = "[" + date + " " + time + "] " + msg.member.nickname + " played '.s " + sfxname + "' on " + msg.member.guild.name;
-                console.log("\x1b[32m%s\x1b[0m", consoleReport); 
-            } 
+                console.log("\x1b[32m%s\x1b[0m", consoleReport);
+            }
         }
         else {
             JoinVoiceMsg(msg);
         }
     }
 
-    if (msg.channel.name == "effect-ideas" & msg.author.bot == false)
-    {
+    if (msg.channel.name == "effect-ideas" & msg.author.bot == false) {
         var mp3File = msg.attachments.first();
-        if(mp3File) {
+        if (mp3File) {
             if (mp3File.name.endsWith(".mp3")) {
                 var submitPath = "./sfxSubmit/";
                 if (!fs.existsSync(submitPath)) {
@@ -231,33 +255,32 @@ client.on('message', async msg => {
                 }
                 downloadFileSecure(mp3File.url, mp3File.name, submitPath);
                 msg.reply("díky za příspěvek. Admin to musí schválit.")
-                .then( adminReply => {
-                    adminReply.react("✅");
-                    adminReply.react("❌");
-                    // owner id could use some improvement - maybe any admin?
-                    adminReply.awaitReactions((reaction, user) => msg.guild.ownerID == user.id && (reaction.emoji.name == "✅" || reaction.emoji.name == "❌"),
-                    { max: 1, time: 43200000 }).then(reactions => { // time = 12 hours
-                        if (reactions.first().emoji.name == "✅") {
-                            // admin approves
-                            console.log("positive");
-                            fs.rename(submitPath + mp3File.name, "./sfx/" + mp3File.name, err => {
-                                if (err) console.log("Could not move approved effect.");
-                            })
-                        }
-                        else
-                        {
-                            // admin disapproves
-                            console.log("negative");
-                            fs.rm(submitPath + mp3File.name, err => {
-                                if (err) console.log("Could not remove disapproved effect.");
-                            })
-                        }    
+                    .then(adminReply => {
+                        adminReply.react("✅");
+                        adminReply.react("❌");
+                        // owner id could use some improvement - maybe any admin?
+                        adminReply.awaitReactions((reaction, user) => msg.guild.ownerID == user.id && (reaction.emoji.name == "✅" || reaction.emoji.name == "❌"),
+                            { max: 1, time: 43200000 }).then(reactions => { // time = 12 hours
+                                if (reactions.first().emoji.name == "✅") {
+                                    // admin approves
+                                    console.log("positive");
+                                    fs.rename(submitPath + mp3File.name, "./sfx/" + mp3File.name, err => {
+                                        if (err) console.log("Could not move approved effect.");
+                                    })
+                                }
+                                else {
+                                    // admin disapproves
+                                    console.log("negative");
+                                    fs.rm(submitPath + mp3File.name, err => {
+                                        if (err) console.log("Could not remove disapproved effect.");
+                                    })
+                                }
+                            }).catch(() => {
+                                console.log("timeout");
+                            });
                     }).catch(() => {
-                        console.log("timeout");
+                        console.error("Error: Could not create admin reaction message.");
                     });
-                }).catch(() => {
-                    console.error("Error: Could not create admin reaction message.");
-                });                        
             }
             else {
                 msg.react("❓");
@@ -268,7 +291,7 @@ client.on('message', async msg => {
         }
     }
 
-    else if (msg.content.startsWith(prefix+"t ")) {
+    else if (msg.content.startsWith(prefix + "t ")) {
         if (msg.member.voice.channel) {
             const args = msg.content.split(" ");
             var ttsmsg = "";
@@ -282,7 +305,7 @@ client.on('message', async msg => {
         }
     }
 
-    else if (msg.content.startsWith(prefix+"r ")) {
+    else if (msg.content.startsWith(prefix + "r ")) {
         if (msg.member.voice.channel) {
             const args = msg.content.split(" ");
             const radioname = args[1];
@@ -305,8 +328,7 @@ client.on('message', async msg => {
                 msg.channel.send(chatstrings[language].radiovol);
                 return;
             }
-            else if (radioname == "add")
-            {
+            else if (radioname == "add") {
                 var nameadd = args[2];
                 var localeadd = args[3];
                 var linkadd = args[4];
@@ -321,8 +343,7 @@ client.on('message', async msg => {
                 msg.channel.send(":radio: `" + nameadd + "` " + ":flag_" + localeadd + ": " + chatstrings[language].radiostream + " " + linkadd + " " + chatstrings[language].radioadd + "\n");
                 return;
             }
-            else if (radioname == "remove")
-            {
+            else if (radioname == "remove") {
                 var nameremove = args[2];
                 for (i = 0; i < radio.streams.length; i++) {
                     if (nameremove == radio.streams[i].name) {
@@ -345,11 +366,19 @@ client.on('message', async msg => {
             }
             if (radiolink != null) {
                 msg.channel.send(":satellite: " + chatstrings[language].radiotuning + " :radio: `" + radioname + "` " + radioflag);
-                //workingDCServers[currentServerIndex].SfxGet("sfx/tuning.mp3", msg); // only once apparently (bug maybe?)
-                const connection = await msg.member.voice.channel.join();
-                workingDCServers[currentServerIndex].dispatcher = connection.play(radiolink, {
-                    volume: radiovol,
+                const channel = msg.member.voice.channel;
+                const connection = joinVoiceChannel({
+                    channelId: channel.id,
+                    guildId: channel.guild.id,
+                    adapterCreator: channel.guild.voiceAdapterCreator,
                 });
+                if (workingDCServers[currentServerIndex].audioPlayer === undefined)
+                    workingDCServers[currentServerIndex].audioPlayer = createAudioPlayer();
+                connection.subscribe(workingDCServers[currentServerIndex].audioPlayer);
+                const readableStream = await fetch(radiolink).then(r => Readable.fromWeb(r.body));
+                const radioStream = createAudioResource(readableStream, { inlineVolume: true });
+                radioStream.volume.setVolume(radiovol);
+                workingDCServers[currentServerIndex].audioPlayer.play(radioStream);
                 workingDCServers[currentServerIndex].streamingaudio[0] = radiolink;
                 workingDCServers[currentServerIndex].streamingaudio[1] = radiovol;
                 workingDCServers[currentServerIndex].queue = [];
@@ -363,25 +392,25 @@ client.on('message', async msg => {
         }
     }
 
-    else if (msg.content == prefix+"stop") {
+    else if (msg.content == prefix + "stop") {
         if (msg.member.voice.channel) {
-            if (workingDCServers[currentServerIndex].dispatcher != undefined) {
+            if (workingDCServers[currentServerIndex].audioPlayer !== undefined) {
                 msg.react("✅");
-                workingDCServers[currentServerIndex].dispatcher.destroy();
+                workingDCServers[currentServerIndex].audioPlayer.stop();
+                workingDCServers[currentServerIndex].audioPlayer = undefined;
                 workingDCServers[currentServerIndex].streamingaudio = [];
                 workingDCServers[currentServerIndex].queue = [];
             }
-            else
-            {
+            else {
                 msg.reply(chatstrings[language].nothingtostop);
             }
         }
         else {
             JoinVoiceMsg(msg);
         }
-      }
+    }
 
-    else if (msg.content == prefix+"wconnect") {
+    else if (msg.content == prefix + "wconnect") {
         if (msg.member.voice.channel) {
             workingDCServers[currentServerIndex].webusermsg = msg;
             msg.reply(chatstrings[language].wconsole);
@@ -391,42 +420,34 @@ client.on('message', async msg => {
         }
     }
 
-    else if (msg.content == prefix+"join") {
+    else if (msg.content == prefix + "join") {
+        const channel = msg.member.voice.channel;
         if (msg.member.voice.channel) {
-            msg.member.voice.channel.join();
+            const connection = joinVoiceChannel({
+                channelId: channel.id,
+                guildId: channel.guild.id,
+                adapterCreator: channel.guild.voiceAdapterCreator,
+            });
         }
         else {
             JoinVoiceMsg(msg);
         }
     }
 
-    // This is pretty server specific - let's not use it for now
-    /*
-    else if (msg.content.startsWith("!play")) {
-        if (msg.member.voice.channel) {
-            if (msg.channel.name != "music-chat") {
-                workingDCServers[currentServerIndex].TtsGet(msg.member.nickname + ", ještě jednou napíšeš vykřičník play mimo music čet, tak na tebe pošlu Sawyho.", msg);
-            }
-        }
-        else {
-            msg.reply("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        }
-    }
-    */
-
-    else if (msg.content == prefix+"guildinfo") {
+    else if (msg.content == prefix + "guildinfo") {
         msg.channel.send(msg.member.guild.name);
         msg.channel.send(msg.member.guild.id);
     }
 
-    else if (msg.content == prefix+"moveall") {
+    else if (msg.content == prefix + "moveall") {
+        return; // Disabled for now
         if (msg.member.voice.channel) {
             msg.member.voice.channel.join();
             var channels = client.voice.connections.array();
             var formerChannel = msg.member.voice.channel;
             var checkCounter = 0;
             var newChannel;
-            
+
             msg.guild.member(client.user).setNickname("[" + chatstrings[language].moveall + "]");
             checkForNewChannel();
 
@@ -446,12 +467,11 @@ client.on('message', async msg => {
                             msg.guild.member(client.user).setNickname("");
                             moveToNewChannel();
                         }
-                    }            
+                    }
                 });
             }
 
-            function moveToNewChannel()
-            {
+            function moveToNewChannel() {
                 formerChannel.members.forEach(member => {
                     member.voice.setChannel(newChannel);
                 });
@@ -459,10 +479,10 @@ client.on('message', async msg => {
         }
         else {
             JoinVoiceMsg(msg);
-        }        
+        }
     }
 
-    else if (msg.content == prefix+"help") {
+    else if (msg.content == prefix + "help") {
         var timeNow = new Date();
         const exampleEmbed = new Discord.MessageEmbed()
             .setColor('#0099ff')
@@ -475,7 +495,7 @@ client.on('message', async msg => {
         msg.channel.send(exampleEmbed)
     }
 
-    else if (msg.content == prefix+"staryahoj") {
+    else if (msg.content == prefix + "staryahoj") {
         msg.author.send("stary ahoj!");
     }
 });
@@ -487,17 +507,17 @@ function WebSfx(urlinfo) {
     for (let i = 0; i < workingDCServers.length; i++) {
         if (workingDCServers[i].guildid == args[2]) {
             index = i;
-        }        
+        }
     }
     if (args[1] == "mp3" && workingDCServers[index].webusermsg.member.voice.channelID != null) {
         workingDCServers[index].webusermsg.channel.send("`[WebConsole]:`" + prefix + "s " + args[0]);
-        workingDCServers[index].SfxGet("sfx/"+args[0]+"."+args[1], workingDCServers[index].webusermsg);
+        workingDCServers[index].SfxGet("sfx/" + args[0] + "." + args[1], workingDCServers[index].webusermsg);
     }
 }
 
 // HTTP server
 http.createServer(function (req, res) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.writeHead(200, { 'Content-Type': 'text/html' });
     WebSfx(req.url); //key
     res.write(
         "<script>function httpGet(theUrl){var xmlHttp = new XMLHttpRequest(); xmlHttp.open( 'GET', theUrl + '.' + document.getElementById('servers').value, false ); xmlHttp.send( null ); return xmlHttp.responseText;}</script><select id='servers'>"
@@ -523,6 +543,6 @@ http.createServer(function (req, res) {
     );
     res.write(buttons);
     res.end();
-}).listen(8080);
+}).listen(2223);
 
 client.login(token);

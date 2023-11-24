@@ -4,16 +4,18 @@
   "description": "Sawy's personal meme slave.",
   "main": "objective.js",
   "dependencies": {
-    "discord.js": "^12.5.1",
-    "ffmpeg-static": "^4.2.7",
-    "google-tts-api": "^2.0.1",
-    "opusscript": "^0.0.7",
-    "ytdl-core": "^4.4.4"
+    "@discordjs/opus": "^0.9.0",
+    "@discordjs/voice": "^0.16.1",
+    "discord.js": "^14.14.1",
+    "ffmpeg-static": "^5.2.0",
+    "opusscript": "^0.1.1",
+    "simple-tts-mp3": "^1.1.0",
+    "sodium": "^3.0.2",
+    "ytdl-core": "^4.11.5"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node objective.js"
+    "start": "node main.js"
   },
   "repository": {
     "type": "git",
