@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, getVoiceConnection } = require('@discordjs/voice');
 const {
     prefix,
     token,
@@ -113,7 +113,26 @@ class dcServer {
 var workingDCServers = [];
 
 function LeaveCheck() {
-    var channels = client.voice.connections.array();
+    var channels = client.voice;
+    channels.adapters.forEach(function (activeChannel, guildId) {
+        const connection = getVoiceConnection(guildId);
+        console.log(connection);
+    });
+    var count = 0;
+    client.guilds.cache.forEach(function (value, key) {
+        value.members.cache.forEach(function (v, k) {
+            if (v.voice.channelId == '928351320929366046') {
+                count++;
+            }
+        });
+        // if (value.id == '692049779756367932')
+        //     console.log(value.channels.fetch('928351320929366046'));
+        // value.channels.forEach(function (value2, key2) {
+        //     console.log(value2);
+        // });
+    });
+    console.log(count);
+    return;
     for (let i = 0; i < channels.length; i++) {
         var membersNo = channels[i].channel.members.size;
         if (membersNo == 1) {
@@ -131,7 +150,7 @@ function LeaveCheck() {
         }
     }
 }
-setInterval(LeaveCheck, 900000);
+// setInterval(LeaveCheck, 900000);
 
 function JoinVoiceMsg(msg) {
     msg.reply(chatstrings[language].joinvoicefirst);
