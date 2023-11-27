@@ -16,11 +16,16 @@ class Command {
         this.callback = callback;
     }
 
-    addStringOption(name, description) {
+    addStringOption(name, description, autoComplete) {
         this.commandObj.addStringOption(option =>
             option.setName(name)
                 .setDescription(description)
-                .setRequired(true));
+                .setRequired(true)
+                .setAutocomplete(autoComplete));
+    }
+
+    addAutoCompleteLogic(callback) {
+        this.autoCompleteCallback = callback;
     }
 
     toJSON() {
