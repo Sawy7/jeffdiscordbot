@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, Partials, SlashCommandBuilder, REST, Routes, Collection, Events } = require("discord.js");
 const { prefix, token, appID, language } = require("../config.json");
+const chatStrings = require("../chat-strings.json");
 const Command = require("./command");
 const Server = require("./server");
 
@@ -66,6 +67,15 @@ class Bot {
         });
     }
 
+    getServer(serverID) {
+        let existingServer = this.servers.get(serverID);
+        if (existingServer !== undefined)
+            return existingServer;
+        existingServer = new Server(serverID);
+        this.servers.set(serverID, existingServer);
+        return existingServer;
+    }
+
     createSlashCommands() {
         // Create collection
         this.commands = new Collection();
@@ -79,22 +89,17 @@ class Bot {
 
         const soundCommand = new Command("sound", "Play a sound effect");
         soundCommand.addCallback(async (interaction) => {
-            const effectName = interaction.options.getString("name") ?? "No sound name provided";
-            // await interaction.reply(effectName);
-
-            const serverID = interaction.guild.id;
-            let existingServer = this.servers.get(serverID);
-            if (existingServer === undefined) {
-                existingServer = new Server(serverID);
-                this.servers.set(serverID, existingServer);
-            }
             const voiceChannel = interaction.member.voice.channel;
-            if (voiceChannel) {
-                console.log(voiceChannel);
-                existingServer.playSound(voiceChannel, effectName);
+            if (!voiceChannel) {
+                await interaction.reply(chatStrings[language].joinvoicefirst);
+                return;
             }
-            else
-                console.log("[no voice]");
+
+            const effectName = interaction.options.getString("name") ?? "No sound name provided";
+            const serverID = interaction.guild.id;
+            const server = this.getServer(serverID);
+
+            server.queueSound(voiceChannel, effectName, interaction);
         });
         soundCommand.addStringOption("name", "Name of the sound effect");
         this.commands.set("sound", soundCommand);
