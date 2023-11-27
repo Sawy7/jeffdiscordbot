@@ -137,6 +137,23 @@ class Bot {
         });
         this.commands.set("sound", soundCommand);
 
+        const ttsCommand = new Command("tts", "Say a thing using TTS");
+        ttsCommand.addCallback(async (interaction) => {
+            const voiceChannel = interaction.member.voice.channel;
+            if (!voiceChannel) {
+                await interaction.reply(chatStrings[language].joinvoicefirst);
+                return;
+            }
+
+            const ttsText = interaction.options.getString("text") ?? "No text provided";
+            const serverID = interaction.guild.id;
+            const server = this.getServer(serverID);
+
+            server.queueTTS(voiceChannel, ttsText, interaction);
+        });
+        ttsCommand.addStringOption("text", "Text to say", false);
+        this.commands.set("tts", ttsCommand);
+
         const listSoundsCommand = new Command("listsounds", "List all available sound effects");
         listSoundsCommand.addCallback(async (interaction) => {
             const ideasChannel = this.client.channels.cache.find(channel => channel.name === "effect-ideas" && channel.guildId === interaction.guildId);
