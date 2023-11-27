@@ -1,13 +1,19 @@
 const { Client, GatewayIntentBits, Partials, SlashCommandBuilder, REST, Routes, Collection, Events } = require("discord.js");
 const { prefix, token, appID, language } = require("../config.json");
 const Command = require("./command");
+const Server = require("./server");
 
 class Bot {
     constructor() {
         this.client = this.createClientInstance();
+        this.initServerStorage();
         this.createSlashCommands();
         this.registerCallbacks();
         this.login();
+    }
+
+    initServerStorage() {
+        this.servers = new Collection();
     }
 
     createClientInstance() {
@@ -65,9 +71,33 @@ class Bot {
         this.commands = new Collection();
 
         // Define commands
-        this.commands.set("ping", new Command("ping", "Replies with Pong!", async (interaction) => {
+        const pingCommand = new Command("ping", "Replies with Pong!");
+        pingCommand.addCallback(async (interaction) => {
             await interaction.reply("pong!");
-        }));
+        });
+        this.commands.set("ping", pingCommand);
+
+        const soundCommand = new Command("sound", "Play a sound effect");
+        soundCommand.addCallback(async (interaction) => {
+            const effectName = interaction.options.getString("name") ?? "No sound name provided";
+            // await interaction.reply(effectName);
+
+            const serverID = interaction.guild.id;
+            let existingServer = this.servers.get(serverID);
+            if (existingServer === undefined) {
+                existingServer = new Server(serverID);
+                this.servers.set(serverID, existingServer);
+            }
+            const voiceChannel = interaction.member.voice.channel;
+            if (voiceChannel) {
+                console.log(voiceChannel);
+                existingServer.playSound(voiceChannel, effectName);
+            }
+            else
+                console.log("[no voice]");
+        });
+        soundCommand.addStringOption("name", "Name of the sound effect");
+        this.commands.set("sound", soundCommand);
 
         // Send everything to Discord HQ
         const rest = new REST().setToken(token);

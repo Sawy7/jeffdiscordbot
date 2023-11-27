@@ -1,9 +1,8 @@
 const { SlashCommandBuilder } = require("discord.js");
 
 class Command {
-    constructor(name, description, callback) {
+    constructor(name, description) {
         this.createSlashCommand(name, description);
-        this.callback = callback;
     }
 
     createSlashCommand(name, description) {
@@ -11,6 +10,17 @@ class Command {
             .setName(name)
             .setDescription(description)
         );
+    }
+
+    addCallback(callback) {
+        this.callback = callback;
+    }
+
+    addStringOption(name, description) {
+        this.commandObj.addStringOption(option =>
+            option.setName(name)
+                .setDescription(description)
+                .setRequired(true));
     }
 
     toJSON() {
